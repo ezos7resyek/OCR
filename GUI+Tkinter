@@ -5,9 +5,12 @@ from pathlib import Path
 import numpy as np
 from PIL import ImageTk, Image
 import cv2
-
-from keras.models import load_model
+import tensorflow as tf
 from keras.preprocessing.image import img_to_array
+
+model = tf.keras.models.load_model("CharRecog.h5")
+print("Model loaded successsfully")
+
 
 
 class Page(tk.Tk):
@@ -26,7 +29,9 @@ class Page(tk.Tk):
         self.name.grid(row=0, column=0, pady=5, padx=10, sticky="sw")
 
         # intro
-        self.intro = tk.Label(self, text="Demonstration of using Python in a desktop application for Character Recognition.", font=("Arial", 11), fg="#202020")
+        self.intro = tk.Label(self,
+                                  text="Demonstration of using Python in a desktop application for Character Recognition.",
+                                  font=("Arial", 11), fg="#202020")
         self.intro.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky="nw")
 
         # select image                          
@@ -56,12 +61,19 @@ class Page(tk.Tk):
 
         # scan button
         self.scan_btn = tk.Button(self, text="     Process     ", bg="#ffffff", relief="flat",
-                                  width=10, command=lambda: self.ocr())
+                                  width=10, command=lambda: self.model())
         # clear ocr text button
         self.clear_btn = tk.Button(self, text="     Clear      ", bg="#ffffff", relief="flat",
                                    width=10, command=lambda: self.clearOcr())
         # text area to place text
-        self.ocr_text = tk.Text(self, height=25, width=38)
+
+        #self.ocr_text = tk.Text(self, height=25, width=38, font=("Arial", 10), fg='black', state='disabled')
+        self.label3 = tk.Label(self, text='',  height=25, width=38, font=("Arial", 10), bg='white', fg='black', wraplength=200, justify='center')
+        self.label3.place(relx=0.5, rely=0.25, relheight=0.45, relwidth=0.42)
+
+
+        # add text to end of textbox
+
 
     def show_image(self):
         global path
@@ -80,7 +92,9 @@ class Page(tk.Tk):
         height, width, no_channels = cv_img.shape
 
         HEIGHT = 400
+        WIDTH = 300
         imgScale = HEIGHT / height
+        imgScale = WIDTH / width
         newX, newY = cv_img.shape[1] * imgScale, cv_img.shape[0] * imgScale
         newimg = cv2.resize(cv_img, (int(newX), int(newY)))
         photo = ImageTk.PhotoImage(image=Image.fromarray(newimg))
@@ -97,47 +111,71 @@ class Page(tk.Tk):
         scan_btn_mid = int(newX / 2) - 40;
         self.scan_btn.grid(row=17, column=0, padx=scan_btn_mid, pady=10,
                            columnspan=3, sticky="w")
-        self.ocr_text.grid(row=8, column=0, padx=350, pady=26, columnspan=3, sticky="w")
+
 
         # set the filename
         self.label_text_x.set(os.path.basename(self.path))
 
-   
 
     def model(self):
         self.label_text_progress.set("Image processing complete.");
 
-
+        dict={'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V''W','X','Y','Z','a','b','c','d','e','f',
+              'g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z'}
         self.ocr_image = cv2.imread(self.path)
         gray = cv2.cvtColor(self.ocr_image, cv2.COLOR_RGB2GRAY)
         blur = cv2.GaussianBlur(gray, (5, 5), 0)
         thresh = cv2.adaptiveThreshold(blur, 255, 1, 1, 11, 2)
         contours, hierachy = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
-
+        a=[]
         i = 0
         for cnt in contours:
             if cv2.contourArea(cnt) > 10:
                 x, y, w, h = cv2.boundingRect(cnt)
                 if (w < 45) and (h > 2):
                     # cv2.rectangle(img,(x-4,y-4),(x+w+4,y+h+4),(255,255,255), 1)
-                    cv2.rectangle(self.ocr_image, (x, y), (x + w + 1, y + h + 1), (255, 255, 255), 1)
+                    cv2.rectangle(thresh, (x, y), (x + w + 1, y + h + 1), (255, 255, 255), 1)
                     # save individual images
-                    crop_img = self.ocr_image[y:y + h + 1, x:x + w + 1]
+                    crop_img = thresh[y:y + h + 1, x:x + w + 1]
+                    crop_img = cv2.resize(crop_img, (32,32))
                     x = img_to_array(crop_img)
+
                     x = x.reshape(1, 32, 32, 1)
+                    x=x/255.0
+                    result = model.predict(x)[0]
+                    a.append(np.argmax(result))
+
                     i = i + 1
-        
-        model = load_model("CharRecog.model")
-       
-        result = np.argmax(load_model.predict(x), axis = 1)
-        a = np.argmax(result)
-        return a
+                    ''''
+                    for k,v in dict.items():
+                        if b==dict[i]:
+                            a.append(
+                    
+                    
+                    for k,v in dict.items():
+                        result = model.predict([x])[0]
+                        #a[0] = np.argmax(result)
+                        a = np.argmax(result)
+                        if a==v
+                            print('k')
+                        b.append('k')
+                    '''
 
-        # add text to end of textbox?????
-        
 
-    def clearOcr(self): (?????)
+        '''         #before resizing image should be square -> resize to 32,32
         
+        '''
+        self.label3.config(text=a)
+
+        self.clear_btn.grid(row=17, column=0, padx=440, pady=10,
+                            columnspan=3, sticky="w")
+
+
+
+
+    def clearOcr(self):
+        # clear the textbox
+        self.label3.after(self.label3.master.destroy)
 
 
 if __name__ == "__main__":
