@@ -147,18 +147,9 @@ class Page(tk.Tk):
 
                     i = i + 1
                     ''''
-                    for k,v in dict.items():
-                        if b==dict[i]:
-                            a.append(
+
                     
-                    
-                    for k,v in dict.items():
-                        result = model.predict([x])[0]
-                        #a[0] = np.argmax(result)
-                        a = np.argmax(result)
-                        if a==v
-                            print('k')
-                        b.append('k')
+                 
                     '''
 
 
